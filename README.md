@@ -12,13 +12,17 @@
 
 ## 安装
 
+> 尚未发布到 npm。请直接用下面的 GitHub 方式安装。
+
+从 GitHub 安装：
+
 ```sh
-dsh plugin --profile desktop add dsh-window-state
+dsh plugin --profile desktop add github:muqing-kg/dsh-window-state
 ```
 
 或在 DSH 设置面板的插件页中安装。**安装后需重启 DSH。**
 
-从源码安装：
+从源码安装（想改代码时）：
 
 ```sh
 git clone https://github.com/muqing-kg/dsh-window-state.git

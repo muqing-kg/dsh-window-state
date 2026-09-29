@@ -12,13 +12,17 @@ On other platforms it logs one info line and returns, without errors or impact o
 
 ## Install
 
+> Not published to npm yet. Use the GitHub form below.
+
+From GitHub:
+
 ```sh
-dsh plugin --profile desktop add dsh-window-state
+dsh plugin --profile desktop add github:muqing-kg/dsh-window-state
 ```
 
 Or install it from the Plugins page in DSH settings. **Restart DSH afterwards.**
 
-From source:
+From source (if you want to modify it):
 
 ```sh
 git clone https://github.com/muqing-kg/dsh-window-state.git
