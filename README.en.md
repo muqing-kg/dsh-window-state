@@ -76,6 +76,12 @@ At the top of `lib/index.js`:
 
 `MIN_W` / `MIN_H` in `lib/geometry.js` set how large a window must be to count as the main window.
 
+## Safety boundary
+
+The plugin **only touches the host's own windows**: the target window's owning process must have the same executable as the plugin process's `process.execPath`, otherwise it is skipped outright. The check runs again immediately before writing (a handle can be recycled).
+
+This guard is a requirement, not a nicety: an earlier version fell back to "the largest window whose title contains DeepSeek" when it could not find the host window, which meant any browser showing a page with "DeepSeek" in its title was mistaken for the main window and had its geometry rewritten. Title-based guessing has been removed entirely.
+
 ## Limitations
 
 - **The window briefly appears at the default size.** The plugin can only adjust it once it exists; the creation-time default is hard-coded in the official `app.asar`.
@@ -87,14 +93,20 @@ At the top of `lib/index.js`:
 ## Development
 
 ```sh
-npm test              # all five suites
+npm test              # all six suites
 npm run test:unit     # geometry (any platform)
-npm run test:windows  # Windows integration
+npm run test:windows  # FFI and window behaviour
 npm run test:e2e      # end-to-end load
 npm run test:dispose  # record-on-exit
+npm run test:safety   # never touches other applications
 ```
 
-The two cross-platform suites (`test:manifest`, `test:unit`) run anywhere. The three window suites need Windows and **spawn their own temporary Notepad window** as the subject, closing it afterwards, so they never touch the window you are using.
+`test:manifest` and `test:unit` run anywhere. The other four need real Windows and DSH — the plugin only touches processes whose executable matches `execPath`, so under plain node it correctly refuses every DSH window and those suites skip the assertions that need a real window:
+
+```powershell
+$env:ELECTRON_RUN_AS_NODE=1
+& "<DSH install dir>\DeepSeek Harness.exe" test/safety.host.mjs
+```
 
 ## License
 

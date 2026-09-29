@@ -77,17 +77,19 @@ ok("存在全部测试入口", () => {
     "test/integration.windows.mjs",
     "test/e2e.host.mjs",
     "test/dispose.host.mjs",
+    "test/safety.host.mjs",
   ]) {
     assert.ok(existsSync(join(ROOT, f)), `${f} 缺失`);
   }
 });
-ok("scripts.test 覆盖全部五套测试", () => {
+ok("scripts.test 覆盖全部六套测试", () => {
   for (const f of [
     "manifest.test.js",
     "geometry.test.js",
     "integration.windows.mjs",
     "e2e.host.mjs",
     "dispose.host.mjs",
+    "safety.host.mjs",
   ]) {
     assert.ok(pkg.scripts.test.includes(f), `scripts.test 未覆盖 ${f}`);
   }

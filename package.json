@@ -35,12 +35,13 @@
     "dsh": ">=0.2.0-rc.1"
   },
   "scripts": {
-    "test": "node test/manifest.test.js && node test/geometry.test.js && node test/integration.windows.mjs && node test/e2e.host.mjs && node test/dispose.host.mjs",
+    "test": "node test/manifest.test.js && node test/geometry.test.js && node test/integration.windows.mjs && node test/e2e.host.mjs && node test/dispose.host.mjs && node test/safety.host.mjs",
     "test:manifest": "node test/manifest.test.js",
     "test:unit": "node test/geometry.test.js",
     "test:windows": "node test/integration.windows.mjs",
     "test:e2e": "node test/e2e.host.mjs",
-    "test:dispose": "node test/dispose.host.mjs"
+    "test:dispose": "node test/dispose.host.mjs",
+    "test:safety": "node test/safety.host.mjs"
   },
   "repository": {
     "type": "git",

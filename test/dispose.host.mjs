@@ -5,16 +5,23 @@
  *      → 调用 dispose（等价于宿主 shutdown）→ 检查状态文件是否更新为最终值。
  *
  * 这验证了两件事：
- *   1. dispose 回调里能读到窗口（Electron 在 finishQuit 里只 hide 不 destroy）
+ *   1. dispose 回调里能读到窗口（宿主 shutdown 时窗口只是被隐藏，尚未销毁）
  *   2. 退出前写入的是"最终值"，而不是上一轮轮询的旧值
+ *
+ * 必须在真实 DSH 环境运行——插件只操作 exe 与 process.execPath 相同的进程，
+ * 用系统 node 跑时 execPath 是 node.exe，插件会（正确地）拒绝任何 DSH 窗口：
+ *   $env:ELECTRON_RUN_AS_NODE=1
+ *   & "<DSH 安装目录>\DeepSeek Harness.exe" test/dispose.host.mjs
  */
-import { readFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { readFileSync, existsSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
-import { spawn, execFileSync } from "node:child_process";
-import { bindUser32, readPlacement, enumTopLevel, windowText, writePlacement, SW_NORMAL } from "../lib/win32.js";
+import {
+  bindUser32, readPlacement, enumTopLevel, writePlacement, SW_NORMAL,
+  windowPid, processImagePath, normalizeExePath,
+} from "../lib/win32.js";
 import { rectToGeometry, geometryToRect } from "../lib/geometry.js";
 
 const home = join(tmpdir(), "dsh-ws-dispose-" + randomUUID().slice(0, 8));
@@ -28,6 +35,17 @@ const check = (label, cond, detail = "") => {
   else { failed++; console.log(`  FAIL  ${label}${detail ? "  — " + detail : ""}`); }
 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+const underDsh = /DeepSeek Harness\.exe$/i.test(process.execPath);
+console.log("环境");
+console.log("  execPath:", process.execPath);
+console.log("  在 DSH 环境下运行:", underDsh);
+console.log("");
+if (!underDsh) {
+  console.log("跳过：本套件需要真实 DSH 环境（否则插件按设计不会操作任何窗口）。");
+  console.log('请用: $env:ELECTRON_RUN_AS_NODE=1; & "<DSH>\\DeepSeek Harness.exe" test/dispose.host.mjs');
+  process.exit(0);
+}
 
 const logs = [];
 const ctx = {
@@ -54,17 +72,19 @@ console.log("2. 改变窗口几何（模拟用户拖动），但不等到下一�
 console.log("─".repeat(66));
 const koffi = createRequire(import.meta.url)("koffi");
 const b = bindUser32(koffi);
+const ownExe = normalizeExePath(process.execPath);
 
-// 找插件正在跟踪的窗口（标题含 DeepSeek 的最大窗口）
+// 用与插件相同的判据找目标窗口：进程 exe === execPath，且面积最大。
 function findTarget() {
   let best = null, bestArea = 0;
   enumTopLevel(b, (h) => {
     if (!b.IsWindowVisible(h)) return true;
     if (b.GetAncestor(h, b.GA_ROOT) !== h) return true;
-    if (!/DeepSeek/i.test(windowText(b, h))) return true;
+    if (normalizeExePath(processImagePath(b, windowPid(b, h))) !== ownExe) return true;
     const p = readPlacement(b, h);
     if (!p) return true;
     const g = rectToGeometry(p.rcNormalPosition);
+    if (g.width < 400 || g.height < 300) return true;
     const area = g.width * g.height;
     if (area > bestArea) { bestArea = area; best = { h, g }; }
     return true;

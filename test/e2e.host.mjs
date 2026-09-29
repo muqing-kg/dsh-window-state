@@ -108,8 +108,18 @@ console.log("\n" + "─".repeat(66) + "\n3. 等待首轮轮询（2.2s）\n" + "�
 await sleep(2400);
 
 console.log("\n" + "─".repeat(66) + "\n4. 插件是否找到窗口并写出状态\n" + "─".repeat(66));
+// 目标窗口的判据是「进程 exe === process.execPath」。用系统 node 跑本套件时
+// execPath 是 node.exe，插件会（正确地）拒绝任何 DSH 窗口，因此不会写出状态。
+// 这是门禁按设计工作，不是失败——此时跳过依赖真实窗口的断言。
+const runningUnderDsh = /DeepSeek Harness\.exe$/i.test(process.execPath);
 const stateExists = existsSync(stateFile);
-check("状态文件已生成", stateExists, stateFile);
+if (runningUnderDsh) {
+  check("状态文件已生成", stateExists, stateFile);
+} else {
+  console.log(`    跳过窗口断言：当前 execPath 为 ${process.execPath}`);
+  console.log("    插件只会操作 exe 与 execPath 相同的进程，故此处不应写盘。");
+  check("未在非宿主进程中写盘（门禁生效）", !stateExists);
+}
 let state = null;
 if (stateExists) {
   state = JSON.parse(readFileSync(stateFile, "utf8"));
@@ -121,7 +131,33 @@ if (stateExists) {
   check("未写入最小化垃圾值", state.x > -30000 && state.y > -30000, `x=${state.x} y=${state.y}`);
 }
 
-console.log("\n" + "─".repeat(66) + "\n5. 句柄缓存与失效（性能改造的回归保护）\n" + "─".repeat(66));
+console.log("\n" + "─".repeat(66) + "\n5. 窗口归属门禁（本插件的安全边界，必须防回退）\n" + "─".repeat(66));
+{
+  const { readFileSync: rf } = await import("node:fs");
+  const src = rf(new URL("../lib/index.js", import.meta.url), "utf8");
+
+  // 曾经的事故：定位逻辑在找不到宿主窗口时，回退为「标题含 DeepSeek 的最大窗口」。
+  // 标题是任意文本——浏览器打开一个标题含 DeepSeek 的页面即被认定为宿主主窗口，
+  // 插件随即改写该浏览器的窗口几何。该回退已删除，此处锁死不再引入。
+  check("定位逻辑不含按标题猜测的回退", !/byTitle/.test(src));
+  check("定位逻辑不读取窗口标题作判据", !/windowText/.test(src));
+
+  // 归属判据必须存在且被用于过滤
+  check("以进程 exe 与 execPath 相同作为归属判据", /normalizeExePath\(process\.execPath\)/.test(src));
+  check("候选窗口须通过归属校验", /function isCandidate[\s\S]{0,400}isOwnProcess\(hwnd\)/.test(src));
+  // 写窗口前须再次校验（句柄可能被系统复用）
+  {
+    const guard = src.indexOf("写之前的最后一道门禁");
+    const write = src.indexOf("writePlacement(b, hwnd, geometryToRect(fitted)");
+    check(
+      "写窗口前再次校验归属",
+      guard !== -1 && write !== -1 && guard < write,
+      guard === -1 ? "未找到门禁" : write === -1 ? "未找到 writePlacement" : `门禁 ${guard} < 写入 ${write}`,
+    );
+  }
+}
+
+console.log("\n" + "─".repeat(66) + "\n6. 句柄缓存与失效（性能改造的回归保护）\n" + "─".repeat(66));
 {
   const { createRequire } = await import("node:module");
   const { bindUser32, enumTopLevel } = await import("../lib/win32.js");
@@ -151,7 +187,7 @@ console.log("\n" + "─".repeat(66) + "\n5. 句柄缓存与失效（性能改造
   check("句柄失效时清空缓存以便重新定位", /target\s*=\s*null/.test(src));
 }
 
-console.log("\n" + "─".repeat(66) + "\n6. 幂等性：再次 apply（模拟 HMR 重载）\n" + "─".repeat(66));
+console.log("\n" + "─".repeat(66) + "\n7. 幂等性：再次 apply（模拟 HMR 重载）\n" + "─".repeat(66));
 try {
   ctx._dispose?.();
   mod.apply(ctx);
@@ -161,7 +197,7 @@ try {
 }
 await sleep(300);
 
-console.log("\n" + "─".repeat(66) + "\n7. 损坏状态文件的容错\n" + "─".repeat(66));
+console.log("\n" + "─".repeat(66) + "\n8. 损坏状态文件的容错\n" + "─".repeat(66));
 ctx._dispose?.();
 writeFileSync(stateFile, "{ this is not json");
 try {
@@ -174,7 +210,7 @@ try {
   check("损坏文件不会导致 apply 抛错", false, e.message);
 }
 
-console.log("\n" + "─".repeat(66) + "\n8. 异常几何被拒（不套用可疑数据）\n" + "─".repeat(66));
+console.log("\n" + "─".repeat(66) + "\n9. 异常几何被拒（不套用可疑数据）\n" + "─".repeat(66));
 ctx._dispose?.();
 writeFileSync(stateFile, JSON.stringify({ schema: 1, x: -32000, y: -32000, width: 160, height: 28, maximized: false }));
 try {
@@ -186,7 +222,7 @@ try {
   check("最小化垃圾值被拒绝，不抛错", false, e.message);
 }
 
-console.log("\n" + "─".repeat(66) + "\n9. 清理\n" + "─".repeat(66));
+console.log("\n" + "─".repeat(66) + "\n10. 清理\n" + "─".repeat(66));
 ctx._dispose?.();
 check("dispose 后可正常退出（定时器已清）", true);
 

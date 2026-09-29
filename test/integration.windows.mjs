@@ -117,19 +117,24 @@ if (hwnd === null) { try { execFileSync("taskkill", ["/PID", String(child.pid), 
 // GetAncestor 比较必须可靠，否则 findMainWindow 会永远返回 null
 check("GetAncestor 比较可靠（该窗口自身就是顶层）", b1.GetAncestor(hwnd, b1.GA_ROOT) === hwnd);
 
+// 记事本会记住上次退出时的最大化状态，基线断言不能依赖它恰好是正常态。
+// 先归位到正常态，让后续断言有确定的起点。
+const koffiRaw = koffi.load("user32.dll");
+const ShowWindow = koffiRaw.func("bool ShowWindow(void* h, int cmd)");
+const GetWindowRect = koffiRaw.func("bool GetWindowRect(void* h, _Out_ DshWindowStateRect* r)");
+ShowWindow(hwnd, 9); // SW_RESTORE
+await sleep(400);
+
 try {
   section("4. 正常态基线");
   const p0 = readPlacement(b1, hwnd);
   const g0 = rectToGeometry(p0.rcNormalPosition);
   check("readPlacement 成功", p0 !== null);
-  check("正常态 showCmd=1", p0.showCmd === SW_NORMAL, `showCmd=${p0.showCmd}`);
+  check("归位后 showCmd=1", p0.showCmd === SW_NORMAL, `showCmd=${p0.showCmd}`);
   check("几何通过校验", isValidGeometry(g0), `${g0.width}x${g0.height} @ (${g0.x},${g0.y})`);
 
   section("5. 最小化：仍能读到用户设定的几何（核心修复）");
   // 用 ShowWindow 最小化（SetWindowPlacement 之外的路径），同时取 GetWindowRect 作反例对照
-  const koffiRaw = koffi.load("user32.dll");
-  const ShowWindow = koffiRaw.func("bool ShowWindow(void* h, int cmd)");
-  const GetWindowRect = koffiRaw.func("bool GetWindowRect(void* h, _Out_ DshWindowStateRect* r)");
   ShowWindow(hwnd, 6);
   await sleep(800);
   const rectWhileMin = { left: 0, top: 0, right: 0, bottom: 0 };
