@@ -1,6 +1,5 @@
 # 依赖
 node_modules/
-!.gitignore
 
 # 日志与临时产物
 *.log
