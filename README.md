@@ -108,6 +108,10 @@ $env:ELECTRON_RUN_AS_NODE=1
 & "<DSH 安装目录>\DeepSeek Harness.exe" test/safety.host.mjs
 ```
 
+## 社区
+
+感谢 [LINUX DO](https://linux.do) 社区提供开放、友善的技术交流平台
+
 ## 许可
 
 MIT
