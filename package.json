@@ -1,0 +1,64 @@
+{
+  "name": "dsh-window-state",
+  "version": "0.1.0",
+  "description": "DSH 桌面版窗口状态记忆：记住主窗口的尺寸、位置与最大化状态，下次启动自动恢复。Remembers the DeepSeek Harness Desktop main window's size, position and maximized state, and restores them on the next launch.",
+  "type": "module",
+  "main": "./lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "README.en.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "deepseek",
+    "cordis",
+    "desktop",
+    "window",
+    "window-state",
+    "window-size",
+    "geometry",
+    "win32"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0",
+    "dsh": ">=0.2.0-rc.1"
+  },
+  "scripts": {
+    "test": "node test/manifest.test.js && node test/geometry.test.js && node test/integration.windows.mjs && node test/e2e.host.mjs && node test/dispose.host.mjs",
+    "test:manifest": "node test/manifest.test.js",
+    "test:unit": "node test/geometry.test.js",
+    "test:windows": "node test/integration.windows.mjs",
+    "test:e2e": "node test/e2e.host.mjs",
+    "test:dispose": "node test/dispose.host.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/muqing-kg/dsh-window-state.git"
+  },
+  "homepage": "https://github.com/muqing-kg/dsh-window-state#readme",
+  "bugs": {
+    "url": "https://github.com/muqing-kg/dsh-window-state/issues"
+  },
+  "dsh": {
+    "manifestVersion": 1,
+    "displayName": "窗口状态记忆",
+    "description": "记住 DSH 桌面版主窗口的尺寸、位置与最大化状态，下次启动自动恢复。",
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "devDependencies": {
+    "koffi": "^3.3.2"
+  }
+}

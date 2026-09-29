@@ -1,0 +1,5 @@
+# dsh-window-state bundle patch —— 插入一行宿主插件。
+# 行名必须等于包名：loader 用它 resolve 到本包。
+- insert:
+    - id: dsh-window-state
+      name: 'dsh-window-state'

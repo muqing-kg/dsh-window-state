@@ -1,0 +1,2 @@
+# 统一以 LF 存入仓库，避免 Windows 检出时的换行符抖动。
+* text=auto eol=lf

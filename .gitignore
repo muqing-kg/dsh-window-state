@@ -1,0 +1,13 @@
+# 依赖
+node_modules/
+!.gitignore
+
+# 日志与临时产物
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.DS_Store
+Thumbs.db
+
+# 测试运行时生成的临时状态
+window-state.json
